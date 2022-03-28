@@ -1,27 +1,28 @@
 import { useEffect } from 'react';
 import styled from 'styled-components';
-import FlightBadge from '../../components/FlightInfoCard/FlightBadge';
-import FlightInfoCard from '../../components/FlightInfoCard/FlightInfoCard';
+
+// Components
+import { SelectedFlights } from '../../components/_organism';
+
+// Hooks
 import useFetch from '../../hooks/useFetch';
 import useQueryString from '../../hooks/useQueryString';
+import { getLocalePrice } from '../../utils/getLocalePrice';
 
 const PASSENGER_TYPE = ['adult', 'infant', 'baby'];
 
 const FlightsCheck = () => {
-  const { searchParams, reflectUserSelectQueries, navigateToWithQueryString } =
-    useQueryString();
+  const { searchParams, navigateWithQS } = useQueryString();
 
   const {
     data: detailFlightsInfo,
     isLoading: detailFlightsLoading,
     error: detailFlightsError,
-    // } = useFetch('./data/flights/flightDetail.json');
-  } = useFetch(
-    `http://mycodetrip-api.chanjoo.xyz/flights/detail?${searchParams.toString()}`
-  );
-
-  const isFirstRender = !detailFlightsInfo?.length;
-  const departureFlightID = searchParams.get('departure_flight');
+  } = useFetch('./data/flights/flightDetail.json');
+  // } = useFetch(
+  //   `http://mycodetrip-api.chanjoo.xyz/flights/detail?${searchParams.toString()}`
+  // );
+  const isFirstRender = !detailFlightsInfo?.data?.length;
 
   const filterPersonnalPrice = detailFlightsInfo?.data?.reduce(
     (acc, flight) => acc + parseInt(flight.price),
@@ -44,20 +45,12 @@ const FlightsCheck = () => {
     .reduce((acc, { price }) => (acc += price), 0)
     .toLocaleString();
 
-  const reselectFlight = selectedFlightID => {
-    // eslint-disable-next-line no-const-assign
-    const isFlightReselected = departureFlightID === `${selectedFlightID}`;
-    isFlightReselected
-      ? reflectUserSelectQueries({ departure_flight: '', return_flight: '' })
-      : reflectUserSelectQueries({ return_flight: '' });
-  };
-
   const goToReservation = () => {
-    navigateToWithQueryString('/reservation');
+    navigateWithQS('/reservation');
   };
 
   useEffect(() => {
-    if (!isFirstRender) navigateToWithQueryString('/flightsList');
+    if (!isFirstRender) navigateWithQS('/flightsList');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
@@ -65,20 +58,10 @@ const FlightsCheck = () => {
   else if (detailFlightsLoading) return <h1>Loading...</h1>;
   return (
     <Container>
-      {detailFlightsInfo?.data?.map(
-        (flightInfo, idx) =>
-          flightInfo?.id && (
-            <FlightInfoCard
-              key={flightInfo.id}
-              flightInfo={flightInfo}
-              reselectFlight={reselectFlight}
-              selected
-            >
-              <FlightBadge flightType={idx} flightInfo={flightInfo} />
-            </FlightInfoCard>
-          )
-      )}
-
+      <SelectedFlights
+        searchParams={searchParams}
+        flightInfos={detailFlightsInfo}
+      />
       <DetailFeeTable>
         <caption>상세요금</caption>
         <thead>
@@ -94,9 +77,9 @@ const FlightsCheck = () => {
             ({ type, price, personnel, totalPrice }) => (
               <TableRow key={type}>
                 <td>{type}</td>
-                <td>{`${price?.toLocaleString()}원`}</td>
+                <td>{getLocalePrice(price)}</td>
                 <td>{personnel}</td>
-                <td>{`${totalPrice.toLocaleString()}원`}</td>
+                <td>{getLocalePrice(totalPrice)}</td>
               </TableRow>
             )
           )}
